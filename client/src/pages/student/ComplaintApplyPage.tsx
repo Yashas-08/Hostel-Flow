@@ -143,7 +143,7 @@ export default function ComplaintApplyPage() {
 
         <FieldWrap label="Room / location (optional)">
           <Input
-            placeholder="e.g. Room 214, 2nd floor common bathroom"
+            placeholder="e.g. Room 101, 2nd floor common bathroom"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
           />

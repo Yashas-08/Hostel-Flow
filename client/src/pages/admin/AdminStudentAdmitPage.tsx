@@ -286,7 +286,7 @@ export default function AdminStudentAdmitPage() {
 
                 <FieldWrap label="Room number" error={fieldErrors.roomNumber}>
                   <Input
-                    placeholder="e.g. 214"
+                    placeholder="e.g. 101"
                     value={roomNumber}
                     onChange={(e) => setRoomNumber(e.target.value)}
                     error={fieldErrors.roomNumber}

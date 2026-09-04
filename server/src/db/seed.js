@@ -1,10 +1,10 @@
 import bcrypt from 'bcryptjs';
 import db from './index.js';
 
-// SAFETY: Prevent seed script from running in production
-if (process.env.NODE_ENV === 'production') {
-  console.error('FATAL: Seed script cannot run in production.');
-  console.error('Seeding demo data is for development only.');
+// SAFETY: Prevent seed script from running in production or against remote environments
+if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+  console.error('FATAL: Seed script cannot run in production or deployment environments.');
+  console.error('Seeding demo data is strictly for local SQLite development only.');
   console.error('To create accounts in production, use the admin admission UI.');
   process.exit(1);
 }

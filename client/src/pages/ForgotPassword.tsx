@@ -81,7 +81,7 @@ export default function ForgotPassword() {
               <Input
                 type="email"
                 autoComplete="email"
-                placeholder="you@hostelflow.app"
+                placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
