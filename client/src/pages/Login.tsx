@@ -108,20 +108,14 @@ export default function Login() {
             <p className="text-sm text-[var(--color-ink-muted)]">
               Don't have an account?{' '}
               <Link to="/signup" className="font-medium text-[var(--color-primary)] hover:underline">
-                Sign up as a Student
+                Sign up
               </Link>
             </p>
           </div>
         </form>
-
-        <div className="mt-8 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] p-3.5">
-          <p className="text-xs font-semibold text-[var(--color-ink-muted)] mb-1.5">Demo accounts</p>
-          <p className="text-xs text-[var(--color-ink-muted)] font-mono-data">student: asha.rao@hostelflow.app</p>
-          <p className="text-xs text-[var(--color-ink-muted)] font-mono-data">admin: admin@hostelflow.app</p>
-          <p className="text-xs text-[var(--color-ink-muted)] font-mono-data">password: password123</p>
-        </div>
       </div>
     </div>
   );
 }
+
 
