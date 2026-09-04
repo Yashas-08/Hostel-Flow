@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+:root {
+  /* Color tokens */
+  --color-bg: #F6F6F4;
+  --color-surface: #FFFFFF;
+  --color-ink: #171A1F;
+  --color-ink-muted: #6B7280;
+  --color-ink-faint: #9CA3AF;
+  --color-border: #E6E6E2;
+  --color-border-strong: #D7D7D1;
+
+  --color-primary: #16233B;       /* deep navy-slate — institutional, trustworthy */
+  --color-primary-ink: #FFFFFF;
+  --color-primary-soft: #E9EDF3;
+
+  --color-accent: #C1791E;        /* warm ochre — used sparingly for key CTAs */
+  --color-accent-ink: #FFFFFF;
+  --color-accent-soft: #FBF0DF;
+
+  --color-success: #1F7A4D;
+  --color-success-soft: #E7F5EC;
+  --color-warning: #B7791F;
+  --color-warning-soft: #FBF0DF;
+  --color-danger: #B3261E;
+  --color-danger-soft: #FBE9E8;
+  --color-info: #2B6088;
+  --color-info-soft: #E9F1F6;
+
+  --font-display: 'Manrope', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  color-scheme: light;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+.font-mono-data {
+  font-family: var(--font-mono);
+}
+
+/* Visible keyboard focus everywhere */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Hide scrollbar for horizontal chip rows while keeping scroll */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
