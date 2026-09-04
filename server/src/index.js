@@ -1,4 +1,14 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+dotenv.config();
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+if (!process.env.JWT_SECRET) {
+  dotenv.config({ path: path.resolve(__dirname, '../.env') });
+}
+
 import express from 'express';
 import cors from 'cors';
 
