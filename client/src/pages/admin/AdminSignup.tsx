@@ -1,17 +1,19 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth, ApiError } from '../context/AuthContext';
-import Button from '../components/Button';
-import { Input, FieldWrap } from '../components/primitives';
+import { useAuth, ApiError } from '../../context/AuthContext';
+import Button from '../../components/Button';
+import { Input, FieldWrap } from '../../components/primitives';
 
-export default function Signup() {
-  const { signup } = useAuth();
+export default function AdminSignup() {
+  const { adminSignup } = useAuth();
   const navigate = useNavigate();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showInviteCode, setShowInviteCode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
@@ -28,6 +30,11 @@ export default function Signup() {
 
     if (!email.trim()) {
       setError('Email address is required.');
+      return;
+    }
+
+    if (!inviteCode.trim()) {
+      setError('Admin invite code is required.');
       return;
     }
 
@@ -48,19 +55,20 @@ export default function Signup() {
 
     setLoading(true);
     try {
-      await signup({
+      await adminSignup({
         name: name.trim(),
         email: email.trim(),
         password,
         confirmPassword,
+        inviteCode: inviteCode.trim(),
       });
-      // New student signups are routed directly to the student dashboard
-      navigate('/student', { replace: true });
+      // Newly created admin is routed directly to the admin dashboard
+      navigate('/admin', { replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError('Could not create student account. Please try again.');
+        setError('Could not create admin account. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -71,17 +79,16 @@ export default function Signup() {
     <div className="min-h-screen flex flex-col justify-center px-6 py-10 relative">
       <header className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10">
         <Link
-          to="/login?role=admin"
-          title="Admin Login"
-          aria-label="Admin Login"
+          to="/signup"
+          title="Student Registration"
+          aria-label="Student Registration"
           className="inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-full sm:rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] text-xs sm:text-[13px] font-medium transition-colors shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] cursor-pointer"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            <circle cx="12" cy="10" r="3" />
-            <path d="M7 18.5c.8-2 2.8-3.5 5-3.5s4.2 1.5 5 3.5" />
+            <circle cx="12" cy="8" r="4" />
+            <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
           </svg>
-          <span className="hidden sm:inline">Admin</span>
+          <span className="hidden sm:inline">Student</span>
         </Link>
       </header>
 
@@ -93,8 +100,8 @@ export default function Signup() {
               <path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5" />
             </svg>
           </div>
-          <h1 className="font-display font-extrabold text-[26px] text-[var(--color-ink)]">Student Registration</h1>
-          <p className="text-[15px] text-[var(--color-ink-muted)] mt-1">Create your Hostel Flow student account.</p>
+          <h1 className="font-display font-extrabold text-[26px] text-[var(--color-ink)]">Admin Registration</h1>
+          <p className="text-[15px] text-[var(--color-ink-muted)] mt-1">Create your Hostel Flow admin account.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
@@ -112,10 +119,31 @@ export default function Signup() {
             <Input
               type="email"
               autoComplete="email"
-              placeholder="student@example.com"
+              placeholder="admin@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
+          </FieldWrap>
+
+          <FieldWrap label="Admin Invite Code">
+            <div className="relative">
+              <Input
+                type={showInviteCode ? 'text' : 'password'}
+                autoComplete="off"
+                placeholder="Enter admin invite code"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                className="pr-12"
+              />
+              <button
+                type="button"
+                onClick={() => setShowInviteCode(!showInviteCode)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] transition-colors p-1"
+                aria-label={showInviteCode ? 'Hide invite code' : 'Show invite code'}
+              >
+                {showInviteCode ? 'Hide' : 'Show'}
+              </button>
+            </div>
           </FieldWrap>
 
           <FieldWrap label="Password">
@@ -167,13 +195,13 @@ export default function Signup() {
           )}
 
           <Button type="submit" fullWidth loading={loading}>
-            Sign up as Student
+            Sign up as Admin
           </Button>
 
           <div className="text-center pt-2">
             <p className="text-sm text-[var(--color-ink-muted)]">
               Already have an account?{' '}
-              <Link to="/login" className="font-medium text-[var(--color-primary)] hover:underline">
+              <Link to="/login?role=admin" className="font-medium text-[var(--color-primary)] hover:underline">
                 Sign in
               </Link>
             </p>

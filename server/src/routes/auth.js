@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import { supabase } from '../db/index.js';
 import { authenticate, JWT_SECRET } from '../middleware/auth.js';
@@ -199,6 +200,121 @@ router.post('/signup', signupLimiter, async (req, res, next) => {
     // Safe response: never expose password, password hash, JWT secret, or sensitive fields
     res.status(201).json({
       message: 'Student account created successfully',
+      token,
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        role: assignedRole,
+        fullName: newUser.full_name,
+        phone: newUser.phone || null,
+        avatarUrl: newUser.avatar_url || null,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ----------------------------------------------------------------------------
+// POST /api/auth/admin/signup (Admin Registration)
+// ----------------------------------------------------------------------------
+router.post('/admin/signup', signupLimiter, async (req, res, next) => {
+  try {
+    const { name, email, password, confirmPassword, inviteCode } = req.body || {};
+
+    // 1. Strict Admin Invite Code Verification
+    const configuredInviteCode = process.env.ADMIN_INVITE_CODE ? process.env.ADMIN_INVITE_CODE.trim() : null;
+    const providedInviteCode = typeof inviteCode === 'string' ? inviteCode.trim() : '';
+
+    let isCodeValid = false;
+    if (configuredInviteCode && providedInviteCode) {
+      const bufA = Buffer.from(providedInviteCode);
+      const bufB = Buffer.from(configuredInviteCode);
+      if (bufA.length === bufB.length) {
+        isCodeValid = crypto.timingSafeEqual(bufA, bufB);
+      }
+    }
+
+    if (!isCodeValid) {
+      return res.status(403).json({
+        error: 'Invalid or missing admin invite code',
+        fields: { inviteCode: 'Valid admin invite code is required' },
+      });
+    }
+
+    const errors = {};
+
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      errors.name = 'Full name is required';
+    } else if (name.trim().length < 2 || name.trim().length > 100) {
+      errors.name = 'Name must be between 2 and 100 characters';
+    }
+
+    if (!email || typeof email !== 'string' || !email.trim()) {
+      errors.email = 'Email address is required';
+    } else if (!EMAIL_REGEX.test(email.trim())) {
+      errors.email = 'Please enter a valid email address';
+    }
+
+    if (!password || typeof password !== 'string') {
+      errors.password = 'Password is required';
+    } else if (password.length < 8) {
+      errors.password = 'Password must be at least 8 characters';
+    }
+
+    if (password !== confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({ error: 'Validation failed', fields: errors });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Check for existing duplicate email
+    const { data: existingUser, error: findErr } = await supabase
+      .from('users')
+      .select('id')
+      .ilike('email', normalizedEmail)
+      .maybeSingle();
+
+    if (findErr) throw findErr;
+    if (existingUser) {
+      return res.status(409).json({
+        error: 'Validation failed',
+        fields: { email: 'An account with this email already exists' },
+      });
+    }
+
+    // Hash password with bcrypt
+    const passwordHash = bcrypt.hashSync(password, 10);
+
+    // STRICT ADMIN ROLE ENFORCEMENT
+    const assignedRole = 'admin';
+
+    const { data: newUser, error: insertUserErr } = await supabase
+      .from('users')
+      .insert({
+        email: normalizedEmail,
+        password_hash: passwordHash,
+        role: assignedRole,
+        full_name: name.trim(),
+      })
+      .select()
+      .single();
+
+    if (insertUserErr) throw insertUserErr;
+
+    // Issue JWT session token matching the existing login mechanism
+    const token = jwt.sign(
+      { id: newUser.id, role: assignedRole, email: newUser.email },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(201).json({
+      message: 'Admin account created successfully',
       token,
       user: {
         id: newUser.id,

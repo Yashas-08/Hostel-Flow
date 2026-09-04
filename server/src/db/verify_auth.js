@@ -8,7 +8,7 @@ import cors from 'cors';
 dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-if (!process.env.JWT_SECRET || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+if (!process.env.JWT_SECRET || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.ADMIN_INVITE_CODE) {
   dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 }
 
@@ -363,10 +363,106 @@ async function runAuthTests() {
     report('18. Login Rate Limiting Remains Functional', loginRateLimitHit,
       `Rate limit triggered 429 Too Many Requests`);
 
+    // ------------------------------------------------------------------------
+    // 19. Admin Signup - Missing Invite Code Rejection (403 & No User Created)
+    // ------------------------------------------------------------------------
+    const missingCodeEmail = `admin.missing.${timestamp}@hostelflow.app`;
+    const missingCodeRes = await request('/api/auth/admin/signup', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'Missing Code Admin',
+        email: missingCodeEmail,
+        password: 'adminPassword123',
+        confirmPassword: 'adminPassword123',
+      }),
+    });
+    const { data: missingUserInDb } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', missingCodeEmail)
+      .maybeSingle();
+    const missingCodePass = missingCodeRes.status === 403 && !missingUserInDb;
+    report('19. Admin Signup - Missing Invite Code Rejection (403 & No User)', missingCodePass,
+      `Status: ${missingCodeRes.status}, User in DB: ${!!missingUserInDb}`);
+
+    // ------------------------------------------------------------------------
+    // 20. Admin Signup - Invalid Invite Code Rejection (403 & No User Created)
+    // ------------------------------------------------------------------------
+    const invalidCodeEmail = `admin.invalid.${timestamp}@hostelflow.app`;
+    const invalidCodeRes = await request('/api/auth/admin/signup', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'Invalid Code Admin',
+        email: invalidCodeEmail,
+        password: 'adminPassword123',
+        confirmPassword: 'adminPassword123',
+        inviteCode: 'completely_wrong_invite_code_xyz',
+      }),
+    });
+    const { data: invalidUserInDb } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', invalidCodeEmail)
+      .maybeSingle();
+    const invalidCodePass = invalidCodeRes.status === 403 && !invalidUserInDb;
+    report('20. Admin Signup - Invalid Invite Code Rejection (403 & No User)', invalidCodePass,
+      `Status: ${invalidCodeRes.status}, User in DB: ${!!invalidUserInDb}`);
+
+    // ------------------------------------------------------------------------
+    // 21. Admin Signup - Valid Invite Code Creation (201 & role=admin)
+    // ------------------------------------------------------------------------
+    let testAdminId = null;
+    const validAdminEmail = `admin.valid.${timestamp}@hostelflow.app`;
+    const validAdminRes = await request('/api/auth/admin/signup', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'Valid Admin User',
+        email: validAdminEmail,
+        password: 'adminPassword123',
+        confirmPassword: 'adminPassword123',
+        inviteCode: process.env.ADMIN_INVITE_CODE,
+      }),
+    });
+    const { data: validUserInDb } = await supabase
+      .from('users')
+      .select('id, role')
+      .eq('email', validAdminEmail)
+      .maybeSingle();
+    testAdminId = validAdminRes.body?.user?.id;
+    const validAdminPass = validAdminRes.status === 201 &&
+                           validAdminRes.body?.token &&
+                           validAdminRes.body?.user?.role === 'admin' &&
+                           validUserInDb?.role === 'admin';
+    report('21. Admin Signup - Valid Invite Code Creation (201 & role=admin)', validAdminPass,
+      `Status: ${validAdminRes.status}, Role: ${validAdminRes.body?.user?.role}, DB Role: ${validUserInDb?.role}`);
+
+    // ------------------------------------------------------------------------
+    // 22. Admin Signup - Duplicate Email Rejection (409)
+    // ------------------------------------------------------------------------
+    const dupAdminRes = await request('/api/auth/admin/signup', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'Duplicate Admin User',
+        email: validAdminEmail,
+        password: 'adminPassword123',
+        confirmPassword: 'adminPassword123',
+        inviteCode: process.env.ADMIN_INVITE_CODE,
+      }),
+    });
+    const dupAdminPass = dupAdminRes.status === 409;
+    report('22. Admin Signup - Duplicate Email Rejection (409)', dupAdminPass,
+      `Status: ${dupAdminRes.status} (Rejected)`);
+
     // Clean up created student test record
     if (testUserId) {
       await supabase.from('users').delete().eq('id', testUserId);
-      console.log(`\nCleaned up test user ${testUserId}`);
+      console.log(`\nCleaned up test student user ${testUserId}`);
+    }
+
+    // Clean up created admin test record
+    if (testAdminId) {
+      await supabase.from('users').delete().eq('id', testAdminId);
+      console.log(`Cleaned up test admin user ${testAdminId}`);
     }
 
   } catch (err) {

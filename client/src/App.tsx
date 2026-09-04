@@ -3,6 +3,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ProtectedLayout, RequireGuest } from './components/ProtectedLayout';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import AdminSignup from './pages/admin/AdminSignup';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 
@@ -49,6 +50,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<RequireGuest><Login /></RequireGuest>} />
           <Route path="/signup" element={<RequireGuest><Signup /></RequireGuest>} />
+          <Route path="/admin/signup" element={<RequireGuest><AdminSignup /></RequireGuest>} />
           <Route path="/forgot-password" element={<RequireGuest><ForgotPassword /></RequireGuest>} />
           <Route path="/reset-password" element={<RequireGuest><ResetPassword /></RequireGuest>} />
 

@@ -1,0 +1,273 @@
+warning: in the working copy of 'client/src/pages/Signup.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/src/db/verify_auth.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'server/src/routes/auth.js', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/client/src/App.tsx b/client/src/App.tsx[m
+[1mindex a1ea023..3ece5f6 100644[m
+[1m--- a/client/src/App.tsx[m
+[1m+++ b/client/src/App.tsx[m
+[36m@@ -3,6 +3,7 @@[m [mimport { AuthProvider } from './context/AuthContext';[m
+ import { ProtectedLayout, RequireGuest } from './components/ProtectedLayout';[m
+ import Login from './pages/Login';[m
+ import Signup from './pages/Signup';[m
+[32m+[m[32mimport AdminSignup from './pages/admin/AdminSignup';[m
+ import ForgotPassword from './pages/ForgotPassword';[m
+ import ResetPassword from './pages/ResetPassword';[m
+ [m
+[36m@@ -49,6 +50,7 @@[m [mexport default function App() {[m
+         <Routes>[m
+           <Route path="/login" element={<RequireGuest><Login /></RequireGuest>} />[m
+           <Route path="/signup" element={<RequireGuest><Signup /></RequireGuest>} />[m
+[32m+[m[32m          <Route path="/admin/signup" element={<RequireGuest><AdminSignup /></RequireGuest>} />[m
+           <Route path="/forgot-password" element={<RequireGuest><ForgotPassword /></RequireGuest>} />[m
+           <Route path="/reset-password" element={<RequireGuest><ResetPassword /></RequireGuest>} />[m
+ [m
+[1mdiff --git a/client/src/context/AuthContext.tsx b/client/src/context/AuthContext.tsx[m
+[1mindex 730b15b..29e8491 100644[m
+[1m--- a/client/src/context/AuthContext.tsx[m
+[1m+++ b/client/src/context/AuthContext.tsx[m
+[36m@@ -7,6 +7,7 @@[m [minterface AuthContextValue {[m
+   loading: boolean;[m
+   login: (email: string, password: string) => Promise<AuthUser>;[m
+   signup: (data: { name: string; email: string; password: string; confirmPassword: string }) => Promise<AuthUser>;[m
+[32m+[m[32m  adminSignup: (data: { name: string; email: string; password: string; confirmPassword: string; inviteCode: string }) => Promise<AuthUser>;[m
+   logout: () => void;[m
+ }[m
+ [m
+[36m@@ -45,13 +46,20 @@[m [mexport function AuthProvider({ children }: { children: ReactNode }) {[m
+     return res.user;[m
+   }[m
+ [m
+[32m+[m[32m  async function adminSignup(data: { name: string; email: string; password: string; confirmPassword: string; inviteCode: string }) {[m
+[32m+[m[32m    const res = await api.post<{ token: string; user: AuthUser }>('/auth/admin/signup', data);[m
+[32m+[m[32m    localStorage.setItem('hf_token', res.token);[m
+[32m+[m[32m    setUser(res.user);[m
+[32m+[m[32m    return res.user;[m
+[32m+[m[32m  }[m
+[32m+[m
+   function logout() {[m
+     localStorage.removeItem('hf_token');[m
+     setUser(null);[m
+   }[m
+ [m
+   return ([m
+[31m-    <AuthContext.Provider value={{ user, loading, login, signup, logout }}>[m
+[32m+[m[32m    <AuthContext.Provider value={{ user, loading, login, signup, adminSignup, logout }}>[m
+       {children}[m
+     </AuthContext.Provider>[m
+   );[m
+[1mdiff --git a/client/src/pages/Login.tsx b/client/src/pages/Login.tsx[m
+[1mindex 23960fc..426eda3 100644[m
+[1m--- a/client/src/pages/Login.tsx[m
+[1m+++ b/client/src/pages/Login.tsx[m
+[36m@@ -1,5 +1,5 @@[m
+ import { useState, type FormEvent } from 'react';[m
+[31m-import { useNavigate, useLocation, Link } from 'react-router-dom';[m
+[32m+[m[32mimport { useNavigate, useLocation, Link, useSearchParams } from 'react-router-dom';[m
+ import { useAuth, ApiError } from '../context/AuthContext';[m
+ import Button from '../components/Button';[m
+ import { Input, FieldWrap } from '../components/primitives';[m
+[36m@@ -8,6 +8,9 @@[m [mexport default function Login() {[m
+   const { login } = useAuth();[m
+   const navigate = useNavigate();[m
+   const location = useLocation();[m
+[32m+[m[32m  const [searchParams] = useSearchParams();[m
+[32m+[m
+[32m+[m[32m  const isAdminFlow = searchParams.get('role') === 'admin' || (location.state as { from?: string })?.from?.startsWith('/admin');[m
+ [m
+   const [email, setEmail] = useState('');[m
+   const [password, setPassword] = useState('');[m
+[36m@@ -40,7 +43,35 @@[m [mexport default function Login() {[m
+   }[m
+ [m
+   return ([m
+[31m-    <div className="min-h-screen flex flex-col justify-center px-6 py-10">[m
+[32m+[m[32m    <div className="min-h-screen flex flex-col justify-center px-6 py-10 relative">[m
+[32m+[m[32m      <header className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10">[m
+[32m+[m[32m        <Link[m
+[32m+[m[32m          to={isAdminFlow ? '/login' : '/login?role=admin'}[m
+[32m+[m[32m          title={isAdminFlow ? 'Student Login' : 'Admin Login'}[m
+[32m+[m[32m          aria-label={isAdminFlow ? 'Student Login' : 'Admin Login'}[m
+[32m+[m[32m          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-full sm:rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] text-xs sm:text-[13px] font-medium transition-colors shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] cursor-pointer"[m
+[32m+[m[32m        >[m
+[32m+[m[32m          {isAdminFlow ? ([m
+[32m+[m[32m            <>[m
+[32m+[m[32m              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">[m
+[32m+[m[32m                <circle cx="12" cy="8" r="4" />[m
+[32m+[m[32m                <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />[m
+[32m+[m[32m              </svg>[m
+[32m+[m[32m              <span className="hidden sm:inline">Student</span>[m
+[32m+[m[32m            </>[m
+[32m+[m[32m          ) : ([m
+[32m+[m[32m            <>[m
+[32m+[m[32m              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">[m
+[32m+[m[32m                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />[m
+[32m+[m[32m                <circle cx="12" cy="10" r="3" />[m
+[32m+[m[32m                <path d="M7 18.5c.8-2 2.8-3.5 5-3.5s4.2 1.5 5 3.5" />[m
+[32m+[m[32m              </svg>[m
+[32m+[m[32m              <span className="hidden sm:inline">Admin</span>[m
+[32m+[m[32m            </>[m
+[32m+[m[32m          )}[m
+[32m+[m[32m        </Link>[m
+[32m+[m[32m      </header>[m
+[32m+[m
+       <div className="mx-auto w-full max-w-sm">[m
+         <div className="mb-9">[m
+           <div className="h-12 w-12 rounded-[var(--radius-md)] bg-[var(--color-primary)] flex items-center justify-center mb-5">[m
+[36m@@ -50,7 +81,17 @@[m [mexport default function Login() {[m
+             </svg>[m
+           </div>[m
+           <h1 className="font-display font-extrabold text-[26px] text-[var(--color-ink)]">Hostel Flow</h1>[m
+[31m-          <p className="text-[15px] text-[var(--color-ink-muted)] mt-1">Sign in to manage your hostel life.</p>[m
+[32m+[m[32m          <p className="text-[15px] text-[var(--color-ink-muted)] mt-1">[m
+[32m+[m[32m            {isAdminFlow ? 'Sign in to the Admin Portal.' : 'Sign in to manage your hostel life.'}[m
+[32m+[m[32m          </p>[m
+[32m+[m[32m          {isAdminFlow && ([m
+[32m+[m[32m            <span className="inline-flex items-center gap-1.5 mt-2.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--color-primary-soft)] text-[var(--color-primary)]">[m
+[32m+[m[32m              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">[m
+[32m+[m[32m                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />[m
+[32m+[m[32m              </svg>[m
+[32m+[m[32m              Admin Portal[m
+[32m+[m[32m            </span>[m
+[32m+[m[32m          )}[m
+         </div>[m
+ [m
+         <form onSubmit={handleSubmit} className="space-y-4" noValidate>[m
+[36m@@ -107,7 +148,10 @@[m [mexport default function Login() {[m
+           <div className="text-center pt-2">[m
+             <p className="text-sm text-[var(--color-ink-muted)]">[m
+               Don't have an account?{' '}[m
+[31m-              <Link to="/signup" className="font-medium text-[var(--color-primary)] hover:underline">[m
+[32m+[m[32m              <Link[m
+[32m+[m[32m                to={isAdminFlow ? '/admin/signup' : '/signup'}[m
+[32m+[m[32m                className="font-medium text-[var(--color-primary)] hover:underline"[m
+[32m+[m[32m              >[m
+                 Sign up[m
+               </Link>[m
+             </p>[m
+[1mdiff --git a/client/src/pages/Signup.tsx b/client/src/pages/Signup.tsx[m
+[1mindex d3c004c..7cda443 100644[m
+[1m--- a/client/src/pages/Signup.tsx[m
+[1m+++ b/client/src/pages/Signup.tsx[m
+[36m@@ -68,7 +68,23 @@[m [mexport default function Signup() {[m
+   }[m
+ [m
+   return ([m
+[31m-    <div className="min-h-screen flex flex-col justify-center px-6 py-10">[m
+[32m+[m[32m    <div className="min-h-screen flex flex-col justify-center px-6 py-10 relative">[m
+[32m+[m[32m      <header className="absolute top-4 right-4 sm:top-6 sm:right-6 z-10">[m
+[32m+[m[32m        <Link[m
+[32m+[m[32m          to="/login?role=admin"[m
+[32m+[m[32m          title="Admin Login"[m
+[32m+[m[32m          aria-label="Admin Login"[m
+[32m+[m[32m          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-full sm:rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-surface)] hover:bg-[var(--color-surface-hover)] text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] text-xs sm:text-[13px] font-medium transition-colors shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] cursor-pointer"[m
+[32m+[m[32m        >[m
+[32m+[m[32m          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">[m
+[32m+[m[32m            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />[m
+[32m+[m[32m            <circle cx="12" cy="10" r="3" />[m
+[32m+[m[32m            <path d="M7 18.5c.8-2 2.8-3.5 5-3.5s4.2 1.5 5 3.5" />[m
+[32m+[m[32m          </svg>[m
+[32m+[m[32m          <span className="hidden sm:inline">Admin</span>[m
+[32m+[m[32m        </Link>[m
+[32m+[m[32m      </header>[m
+[32m+[m
+       <div className="mx-auto w-full max-w-sm">[m
+         <div className="mb-8">[m
+           <div className="h-12 w-12 rounded-[var(--radius-md)] bg-[var(--color-primary)] flex items-center justify-center mb-5">[m
+[1mdiff --git a/server/.env.example b/server/.env.example[m
+[1mindex f5970f6..d6fe136 100644[m
+[1m--- a/server/.env.example[m
+[1m+++ b/server/.env.example[m
+[36m@@ -32,3 +32,7 @@[m [mAPP_URL=http://localhost:5173[m
+ # We support Resend (https://resend.com) out of the box with zero external dependencies.[m
+ RESEND_API_KEY=[m
+ EMAIL_FROM="Hostel Flow <noreply@yourdomain.com>"[m
+[32m+[m
+[32m+[m[32m# Admin Registration Invite Code (Backend Only)[m
+[32m+[m[32m# REQUIRED to create new administrator accounts via /admin/signup[m
+[32m+[m[32mADMIN_INVITE_CODE=[m
+[1mdiff --git a/server/src/db/verify_auth.js b/server/src/db/verify_auth.js[m
+[1mindex 3148de4..54a36c3 100644[m
+[1m--- a/server/src/db/verify_auth.js[m
+[1m+++ b/server/src/db/verify_auth.js[m
+[36m@@ -8,7 +8,7 @@[m [mimport cors from 'cors';[m
+ dotenv.config();[m
+ [m
+ const __dirname = path.dirname(fileURLToPath(import.meta.url));[m
+[31m-if (!process.env.JWT_SECRET || !process.env.SUPABASE_SERVICE_ROLE_KEY) {[m
+[32m+[m[32mif (!process.env.JWT_SECRET || !process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.ADMIN_INVITE_CODE) {[m
+   dotenv.config({ path: path.resolve(__dirname, '../../.env') });[m
+ }[m
+ [m
+[36m@@ -363,10 +363,106 @@[m [masync function runAuthTests() {[m
+     report('18. Login Rate Limiting Remains Functional', loginRateLimitHit,[m
+       `Rate limit triggered 429 Too Many Requests`);[m
+ [m
+[32m+[m[32m    // ------------------------------------------------------------------------[m
+[32m+[m[32m    // 19. Admin Signup - Missing Invite Code Rejection (403 & No User Created)[m
+[32m+[m[32m    // ------------------------------------------------------------------------[m
+[32m+[m[32m    const missingCodeEmail = `admin.missing.${timestamp}@hostelflow.app`;[m
+[32m+[m[32m    const missingCodeRes = await request('/api/auth/admin/signup', {[m
+[32m+[m[32m      method: 'POST',[m
+[32m+[m[32m      body: JSON.stringify({[m
+[32m+[m[32m        name: 'Missing Code Admin',[m
+[32m+[m[32m        email: missingCodeEmail,[m
+[32m+[m[32m        password: 'adminPassword123',[m
+[32m+[m[32m        confirmPassword: 'adminPassword123',[m
+[32m+[m[32m      }),[m
+[32m+[m[32m    });[m
+[32m+[m[32m    const { data: missingUserInDb } = await supabase[m
+[32m+[m[32m      .from('users')[m
+[32m+[m[32m      .select('id')[m
+[32m+[m[32m      .eq('email', missingCodeEmail)[m
+[32m+[m[32m      .maybeSingle();[m
+[32m+[m[32m    const missingCodePass = missingCodeRes.status === 403 && !missingUserInDb;[m
+[32m+[m[32m    report('19. Admin Signup - Missing Invite Code Rejection (403 & No User)', missingCodePass,[m
+[32m+[m[32m      `Status: ${missingCodeRes.status}, User in DB: ${!!missingUserInDb}`);[m
+[32m+[m
+[32m+[m[32m    // ------------------------------------------------------------------------[m
+[32m+[m[32m    // 20. Admin Signup - Invalid Invite Code Rejection (403 & No User Created)[m
+[32m+[m[32m    // ------------------------------------------------------------------------[m
+[32m+[m[32m    const invalidCodeEmail = `admin.invalid.${timestamp}@hostelflow.app`;[m
+[32m+[m[32m    const invalidCodeRes = await request('/api/auth/admin/signup', {[m
+[32m+[m[32m      method: 'POST',[m
+[32m+[m[32m      body: JSON.stringify({[m
+[32m+[m[32m        name: 'Invalid Code Admin',[m
+[32m+[m[32m        email: invalidCodeEmail,[m
+[32m+[m[32m        password: 'adminPassword123',[m
+[32m+[m[32m        confirmPassword: 'adminPassword123',[m
+[32m+[m[32m        inviteCode: 'completely_wrong_invite_code_xyz',[m
+[32m+[m[32m      }),[m
+[32m+[m[32m    });[m
+[32m+[m[32m    const { data: invalidUserInDb } = await supabase[m
+[32m+[m[32m      .from('users')[m
+[32m+[m[32m      .select('id')[m
+[32m+[m[32m      .eq('email', invalidCodeEmail)[m
+[32m+[m[32m      .maybeSingle();[m
+[32m+[m[32m    const invalidCodePass = invalidCodeRes.status === 403 && !invalidUserInDb;[m
+[32m+[m[32m    report('20. Admin Signup - Invalid Invite Code Rejection (403 & No User)', invalidCodePass,[m
+[32m+[m[32m      `Status: ${invalidCodeRes.status}, User in DB: ${!!invalidUserInDb}`);[m
+[32m+[m
+[32m+[m[32m    // ------------------------------------------------------------------------[m
+[32m+[m[32m    // 21. Admin Signup - Valid Invite Code Creation (201 & role=admin)[m
+[32m+[m[32m    // ------------------------------------------------------------------------[m
+[32m+[m[32m    let testAdminId = null;[m
+[32m+[m[32m    const validAdminEmail = `admin.valid.${timestamp}@hostelflow.app`;[m
+[32m+[m[32m    const validAdminRes = await request('/api/auth/admin/signup', {[m
+[32m+[m[32m      method: 'POST',[m
+[32m+[m[32m      body: JSON.stringify({[m
+[32m+[m[32m        name: 'Valid Admin User',[m
+[32m+[m[32m        email: validAdminEmail,[m
+[32m+[m[32m        password: 'adminPassword123',[m
+[32m+[m[32m        confirmPassword: 'adminPassword123',[m
+[32m+[m[32m        inviteCode: process.env.ADMIN_INVITE_CODE,[m
+[32m+[m[32m      }),[m
+[32m+[m[32m    });[m
+[32m+[m[32m    const { data: validUserInDb } = await supabase[m
+[32m+[m[32m      .from('users')[m
+[32m+[m[32m      .select('id, role')[m
+[32m+[m[32m      .eq('email', validAdminEmail)[m
+[32m+[m[32m      .maybeSingle();[m
+[32m+[m[32m    testAdminId = validAdminRes.body?.user?.id;[m
+[32m+[m[32m    const validAdminPass = validAdminRes.status === 201 &&[m
+[32m+[m[32m                           validAdminRes.body?.token &&[m
+[32m+[m[32
