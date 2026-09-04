@@ -60,7 +60,7 @@ router.post('/verify', async (req, res, next) => {
       return res.status(400).json({ error: 'This booking was cancelled' });
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
     if (booking.date !== todayStr) {
       return res.status(400).json({
         error: `This QR is for ${booking.date}, not today`,

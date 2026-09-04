@@ -13,12 +13,50 @@ const MEAL_INFO = {
   dinner: { label: 'Dinner', timeLabel: '8:00 PM – 8:15 PM' },
 };
 
+const TIMEZONE = 'Asia/Kolkata';
 const BOOKING_WINDOW_START_HOUR = 6;
 const BOOKING_WINDOW_END_HOUR = 19;
 
+function getISTDateTime(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hourCycle: 'h23',
+  }).formatToParts(date);
+
+  const get = (type) => parts.find((p) => p.type === type).value;
+  return {
+    year: parseInt(get('year'), 10),
+    month: parseInt(get('month'), 10),
+    day: parseInt(get('day'), 10),
+    hour: parseInt(get('hour'), 10),
+    minute: parseInt(get('minute'), 10),
+    second: parseInt(get('second'), 10),
+  };
+}
+
 function isWithinBookingWindow(now = new Date()) {
-  const hour = now.getHours();
+  const { hour } = getISTDateTime(now);
   return hour >= BOOKING_WINDOW_START_HOUR && hour < BOOKING_WINDOW_END_HOUR;
+}
+
+function getISTDays(now = new Date()) {
+  const { year, month, day } = getISTDateTime(now);
+  const todayDate = new Date(Date.UTC(year, month - 1, day));
+  const yesterdayDate = new Date(Date.UTC(year, month - 1, day - 1));
+  const tomorrowDate = new Date(Date.UTC(year, month - 1, day + 1));
+
+  const format = (d) => d.toISOString().split('T')[0];
+  return {
+    yesterday: format(yesterdayDate),
+    today: format(todayDate),
+    tomorrow: format(tomorrowDate),
+  };
 }
 
 async function getStudentIdOrThrow(userId, res) {
@@ -42,24 +80,13 @@ function dayLabel(dateStr, todayStr, tomorrowStr, yesterdayStr) {
   return dateStr;
 }
 
-function formatDate(d) {
-  return d.toISOString().split('T')[0];
-}
-
 // GET /api/meals
 router.get('/', async (req, res, next) => {
   try {
     const studentId = await getStudentIdOrThrow(req.user.id, res);
     if (!studentId) return;
 
-    const now = new Date();
-    const today = formatDate(now);
-    const yesterdayDate = new Date(now);
-    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-    const yesterday = formatDate(yesterdayDate);
-    const tomorrowDate = new Date(now);
-    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-    const tomorrow = formatDate(tomorrowDate);
+    const { yesterday, today, tomorrow } = getISTDays();
 
     const { data: bookings, error } = await supabase
       .from('meal_bookings')
@@ -142,9 +169,7 @@ router.post('/book', async (req, res, next) => {
       return res.status(400).json({ error: 'Meal bookings are only open between 6:00 AM and 7:00 PM' });
     }
 
-    const tomorrowDate = new Date();
-    tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-    const tomorrow = formatDate(tomorrowDate);
+    const { tomorrow } = getISTDays();
 
     const { data: existing } = await supabase
       .from('meal_bookings')
